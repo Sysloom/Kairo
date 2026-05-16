@@ -10,7 +10,7 @@ use commands::{
     show_timer_window, start_focus_break_cycle, start_free_session,
 };
 use domain::models::TimerStatus;
-use infrastructure::{db, notifications, tray, windows};
+use infrastructure::{db, kde_integration, notifications, tray, windows};
 use std::time::Duration;
 use tauri::Manager;
 
@@ -23,6 +23,7 @@ pub fn run() {
             let repository = db::initialize(app.handle())?;
             app.manage(AppState::new(repository));
             tray::setup(app)?;
+            kde_integration::setup(app.handle());
 
             if let Some(timer_window) = app.get_webview_window(windows::TIMER_WINDOW_LABEL) {
                 windows::apply_timer_window_defaults(&timer_window);

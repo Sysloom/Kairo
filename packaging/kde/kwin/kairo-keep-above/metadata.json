@@ -1,0 +1,18 @@
+{
+  "KPlugin": {
+    "Name": "Kairo Keep Above",
+    "Description": "Forces Kairo floating timer windows to stay above other windows on KDE/Wayland.",
+    "Icon": "preferences-system-windows",
+    "Authors": [
+      {
+        "Name": "Kairo maintainers"
+      }
+    ],
+    "Id": "kairo-keep-above",
+    "Version": "1.0.0",
+    "License": "MIT"
+  },
+  "X-Plasma-API": "javascript",
+  "X-Plasma-MainScript": "code/main.js",
+  "KPackageStructure": "KWin/Script"
+}

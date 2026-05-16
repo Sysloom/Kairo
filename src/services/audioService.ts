@@ -4,6 +4,7 @@ import { getToneOption } from '../features/focus/focusDurationPreference';
 import { TIMER_ALARM_DISMISSED_EVENT, TIMER_RESET_EVENT, TIMER_STEP_COMPLETED_EVENT } from './tauriEvents';
 
 const GENERATED_ALARM_DURATION_MS = 4_000;
+const AUDIO_ALARM_START_TIMEOUT_MS = 2_000;
 
 type BrowserAudioContext = InstanceType<typeof window.AudioContext>;
 type BrowserOscillatorNode = ReturnType<BrowserAudioContext['createOscillator']>;
@@ -15,6 +16,8 @@ let alarmTimeoutId: number | null = null;
 let oscillator: BrowserOscillatorNode | null = null;
 let gain: BrowserGainNode | null = null;
 let audioElement: BrowserAudioElement | null = null;
+let audioObjectUrl: string | null = null;
+let audioPlaybackToken = 0;
 
 export function bindTimerAlarmEvents(): () => void {
   let disposed = false;
@@ -61,7 +64,7 @@ export function playTimerAlarm(): void {
   stopTimerAlarm();
 
   if (tone.kind === 'audio') {
-    playAudioFileAlarm(tone.url);
+    void playAudioFileAlarm(tone.url);
     return;
   }
 
@@ -93,27 +96,56 @@ function playGeneratedAlarm(toneValue: string): void {
   alarmTimeoutId = window.setTimeout(stopTimerAlarm, GENERATED_ALARM_DURATION_MS + 100);
 }
 
-function playAudioFileAlarm(audioUrl: string): void {
+async function playAudioFileAlarm(audioUrl: string): Promise<void> {
+  const playbackToken = nextAudioPlaybackToken();
+  const playbackUrl = await resolveAudioPlaybackUrl(audioUrl);
+
+  if (!isCurrentAudioPlayback(playbackToken)) {
+    revokeAudioObjectUrl(playbackUrl.objectUrl);
+    return;
+  }
+
   const nextAudioElement = getAudioElement();
+  let hasStarted = false;
+  let fallbackTriggered = false;
+  const fallbackToGeneratedAlarm = (reason: unknown) => {
+    if (fallbackTriggered || !isCurrentAudioPlayback(playbackToken)) {
+      return;
+    }
+
+    fallbackTriggered = true;
+    console.warn('No se pudo reproducir la alarma seleccionada. Usando tono suave como respaldo.', reason);
+    stopTimerAlarm();
+    playGeneratedAlarm('suave');
+  };
 
   nextAudioElement.pause();
-  nextAudioElement.src = audioUrl;
+  replaceAudioObjectUrl(playbackUrl.objectUrl);
+  nextAudioElement.src = playbackUrl.url;
   nextAudioElement.load();
   nextAudioElement.volume = 0.72;
   nextAudioElement.currentTime = 0;
   nextAudioElement.onended = stopTimerAlarm;
+  nextAudioElement.onerror = () => fallbackToGeneratedAlarm(nextAudioElement.error ?? 'Unknown audio element error');
+  nextAudioElement.onplaying = () => {
+    hasStarted = true;
+    clearAlarmTimeout();
+  };
+
+  alarmTimeoutId = window.setTimeout(() => {
+    if (!hasStarted) {
+      fallbackToGeneratedAlarm('Timed out waiting for audio playback to start');
+    }
+  }, AUDIO_ALARM_START_TIMEOUT_MS);
 
   void nextAudioElement.play().catch((reason: unknown) => {
-    console.warn('No se pudo reproducir la alarma seleccionada', reason);
-    stopTimerAlarm();
+    fallbackToGeneratedAlarm(reason);
   });
 }
 
 export function stopTimerAlarm(): void {
-  if (alarmTimeoutId !== null) {
-    window.clearTimeout(alarmTimeoutId);
-    alarmTimeoutId = null;
-  }
+  audioPlaybackToken += 1;
+  clearAlarmTimeout();
 
   if (oscillator !== null) {
     try {
@@ -130,8 +162,63 @@ export function stopTimerAlarm(): void {
 
   if (audioElement !== null) {
     audioElement.onended = null;
+    audioElement.onerror = null;
+    audioElement.onplaying = null;
     audioElement.pause();
     audioElement.currentTime = 0;
+  }
+
+  replaceAudioObjectUrl(null);
+}
+
+async function resolveAudioPlaybackUrl(audioUrl: string): Promise<{ url: string; objectUrl: string | null }> {
+  try {
+    const response = await window.fetch(audioUrl);
+
+    if (!response.ok) {
+      throw new Error(`Failed to load audio asset: ${response.status} ${response.statusText}`);
+    }
+
+    const sourceBlob = await response.blob();
+    const playableBlob = sourceBlob.type === '' || sourceBlob.type === 'application/octet-stream'
+      ? new window.Blob([sourceBlob], { type: 'audio/mpeg' })
+      : sourceBlob;
+    const objectUrl = window.URL.createObjectURL(playableBlob);
+
+    return { url: objectUrl, objectUrl };
+  } catch (error) {
+    console.warn('No se pudo preparar la alarma como Blob. Probando la URL directa.', error);
+    return { url: audioUrl, objectUrl: null };
+  }
+}
+
+function nextAudioPlaybackToken(): number {
+  audioPlaybackToken += 1;
+  return audioPlaybackToken;
+}
+
+function isCurrentAudioPlayback(playbackToken: number): boolean {
+  return playbackToken === audioPlaybackToken;
+}
+
+function clearAlarmTimeout(): void {
+  if (alarmTimeoutId !== null) {
+    window.clearTimeout(alarmTimeoutId);
+    alarmTimeoutId = null;
+  }
+}
+
+function replaceAudioObjectUrl(nextObjectUrl: string | null): void {
+  if (audioObjectUrl !== null && audioObjectUrl !== nextObjectUrl) {
+    revokeAudioObjectUrl(audioObjectUrl);
+  }
+
+  audioObjectUrl = nextObjectUrl;
+}
+
+function revokeAudioObjectUrl(objectUrl: string | null): void {
+  if (objectUrl !== null) {
+    window.URL.revokeObjectURL(objectUrl);
   }
 }
 

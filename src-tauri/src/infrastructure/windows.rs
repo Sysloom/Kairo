@@ -33,6 +33,7 @@ pub fn show_timer_window(app: &AppHandle) -> Result<(), String> {
     let window = window_by_label(app, TIMER_WINDOW_LABEL)?;
     apply_timer_window_defaults(&window);
     window.show().map_err(to_window_error)?;
+    apply_timer_window_defaults(&window);
     window.set_focus().map_err(to_window_error)?;
     Ok(())
 }
@@ -98,6 +99,7 @@ fn show_mini_timer_window(app: &AppHandle) -> Result<(), String> {
         .set_size(PhysicalSize::new(MINI_TIMER_WIDTH, MINI_TIMER_HEIGHT))
         .map_err(to_window_error)?;
     window.show().map_err(to_window_error)?;
+    apply_mini_timer_window_defaults(&window);
     window.set_focus().map_err(to_window_error)
 }
 

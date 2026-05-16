@@ -4,6 +4,14 @@ Kairo is a local-first focus timer desktop app for **Fedora KDE / Plasma / Wayla
 
 It is designed around one non-negotiable rule: **Rust owns the real timer state and persisted focus truth**.
 
+Spanish version: [README.es.md](./README.es.md)
+
+## Download RPM
+
+**Fedora KDE 44 build:**
+
+- RPM: [Kairo-0.1.1-1.x86_64.rpm](https://github.com/AngelGAVargas/Kairo/releases/download/v0.1.1/Kairo-0.1.1-1.x86_64.rpm)
+
 ## Quick start
 
 1. Install dependencies.
@@ -20,7 +28,14 @@ It is designed around one non-negotiable rule: **Rust owns the real timer state 
 - local SQLite persistence;
 - focus session pause/resume/reset flow;
 - light and dark themes;
-- packaged MP3 alarms.
+- packaged MP3 alarms with audible fallback.
+
+## Recent fixes in this build
+
+- packaged MP3 alarms now play correctly in the installed app;
+- floating timer windows use stable KDE/KWin-matchable titles;
+- KDE/Wayland installs now bundle a KWin script that Kairo auto-enables for the current user so floating timers stay above other windows;
+- the RPM linked above was built for **Fedora KDE 44**.
 
 ## Architecture rules
 
@@ -115,6 +130,12 @@ src-tauri/target/release/bundle/rpm/
 
 ### Install as a normal Fedora user
 
+Recommended for **Fedora KDE 44**:
+
+```bash
+sudo dnf install -y "https://github.com/AngelGAVargas/Kairo/releases/download/v0.1.1/Kairo-0.1.1-1.x86_64.rpm"
+```
+
 If your Fedora desktop allows local package installation through Discover or another graphical installer, you can open the generated `.rpm` file directly.
 
 CLI option:
@@ -138,9 +159,28 @@ kbuildsycoca6 --noincremental
 ## KDE / Wayland notes
 
 - `alwaysOnTop` is best-effort under Wayland.
-- Some systems may still benefit from a manual KWin rule.
+- Kairo packages a KWin script and auto-installs it for the current user on KDE/Wayland so floating timer windows stay above other windows from the compositor side.
 - The main window starts larger than its minimum size on purpose. Starting exactly at the minimum size caused a first-launch native close-button issue on KDE/Wayland.
 - A tray-rendered rectangular countdown was intentionally rejected because KDE/Tauri compresses it into a poor unreadable shape.
+
+### Force floating timers above other windows on KDE
+
+On some Plasma Wayland sessions, Tauri's `alwaysOnTop` hint is ignored. The RPM includes the KWin script and Kairo installs/enables it for the current user at startup when it detects KDE/Wayland.
+
+Manual fallback for development builds or troubleshooting:
+
+```bash
+npx pnpm@10.11.0 kde:install-kwin-script
+```
+
+Then restart Kairo and test the floating timer over another app.
+
+The script matches only Kairo overlay timer windows:
+
+- `Kairo Floating Timer`
+- `Kairo Mini Timer`
+
+It forces `keepAbove` and keeps those windows out of the taskbar, pager, and window switcher.
 
 ## Manual QA checklist
 
@@ -190,6 +230,7 @@ kbuildsycoca6 --noincremental
 - `src-tauri/src/infrastructure/tray.rs` — tray behavior
 - `src/features/focus/themePreference.ts` — theme persistence and IPC sync
 - `src/services/audioService.ts` — alarm playback and dismissal
+- `packaging/kde/kwin/kairo-keep-above/` — optional KWin script for reliable timer keep-above behavior on KDE/Wayland
 
 ## Current packaging note
 

@@ -1,0 +1,582 @@
+.main-window {
+  width: 100vw;
+  height: 100vh;
+  min-width: 420px;
+  min-height: 636px;
+  padding: 0;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.kairo-board {
+  position: relative;
+  width: 420px;
+  height: 636px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.kairo-header h1,
+.stats-section h2,
+.config-title {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kairo-header h1 {
+  position: absolute;
+  top: 20px;
+  left: 16px;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+}
+
+.kairo-header__wordmark {
+  display: block;
+  width: 90px;
+  height: auto;
+}
+
+.kairo-header p {
+  position: absolute;
+  top: 55px;
+  left: 20px;
+  display: -webkit-box;
+  width: 254px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.kairo-total-chip,
+.kairo-back-button {
+  position: absolute;
+  top: 25px;
+  left: 299px;
+  width: 101px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+
+.kairo-total-chip {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1px;
+}
+
+.kairo-total-chip strong {
+  color: var(--color-text);
+  font-family: var(--font-timer);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.kairo-total-chip span {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.kairo-back-button {
+  left: 320px;
+  width: 80px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hero-card {
+  position: absolute;
+  top: 96px;
+  left: 32px;
+  width: 356px;
+  height: 332px;
+  border: 1px solid var(--color-card-border);
+  border-radius: 32px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.hero-card__floating-timer-button {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 20px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--color-muted);
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--font-timer);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hero-card__floating-timer-button:hover,
+.hero-card__floating-timer-button:focus-visible {
+  color: var(--color-accent);
+}
+
+.hero-card__floating-timer-button:focus-visible {
+  border-radius: 999px;
+  outline: 0;
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.timer-ring-outline {
+  position: absolute;
+  top: 25px;
+  left: 37px;
+  width: 281px;
+  height: 281px;
+  border: 3px solid var(--color-ring-outline);
+  border-radius: 50%;
+}
+
+.tick-ring {
+  position: absolute;
+  top: 34px;
+  left: 44px;
+  width: 266px;
+  height: 266px;
+  border-radius: 50%;
+}
+
+.tick-ring span {
+  --tick-angle: calc(var(--tick-index) * 5deg);
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--color-tick-rest);
+  transform: rotate(var(--tick-angle)) translateY(0) translateX(-50%);
+  transform-origin: 50% 133px;
+}
+
+.tick-ring span.is-active {
+  background: var(--color-accent);
+}
+
+.timer-value-group {
+  position: absolute;
+  top: 126px;
+  left: 88px;
+  display: grid;
+  width: 181px;
+  height: 80px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+}
+
+.timer-ring__time {
+  color: var(--color-text);
+  font-family: var(--font-timer);
+  font-size: 50px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.08em;
+  text-align: center;
+}
+
+.timer-ring__time-input {
+  width: 181px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.timer-ring__time-input:focus-visible {
+  border-radius: 12px;
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.timer-ring__status {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.plan-chip {
+  position: absolute;
+  top: 474px;
+  left: 32px;
+  display: grid;
+  place-items: center;
+  width: 356px;
+  height: 37px;
+  margin: 0;
+  border: 1px solid var(--color-accent-soft-border);
+  border-radius: 20px;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.completion-chip {
+  position: absolute;
+  top: 458px;
+  left: 32px;
+  display: grid;
+  width: 356px;
+  min-height: 64px;
+  align-content: center;
+  gap: 3px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-accent-soft-border);
+  border-radius: 20px;
+  color: var(--color-accent);
+  background: var(--color-completion-bg);
+  box-shadow: var(--shadow-completion);
+}
+
+.completion-chip strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.completion-chip span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.timer-view .timer-controls {
+  position: absolute;
+  top: 528px;
+  left: 98px;
+  width: 228px;
+  height: 64px;
+  margin: 0;
+  gap: 0;
+  justify-content: flex-start;
+}
+
+.timer-view--completed .timer-controls {
+  top: 550px;
+}
+
+.timer-view--completed .utility-actions {
+  display: none;
+}
+
+.timer-view .timer-controls .icon-button {
+  position: absolute;
+}
+
+.timer-view .timer-controls__reset,
+.timer-view .timer-controls__settings {
+  top: 10px;
+  width: 44px;
+  height: 44px;
+}
+
+.timer-view .timer-controls__reset {
+  left: 0;
+}
+
+.timer-view .timer-controls__primary {
+  top: 0;
+  left: 82px;
+  width: 64px;
+  height: 64px;
+}
+
+.timer-view .timer-controls__settings {
+  left: 184px;
+}
+
+.utility-actions {
+  position: absolute;
+  left: 32px;
+  bottom: 8px;
+  display: flex;
+  width: 356px;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+
+.utility-actions button {
+  height: 24px;
+  padding: 0 6px;
+  border-color: transparent;
+  color: color-mix(in srgb, var(--color-muted) 60%, transparent);
+  background: transparent;
+  box-shadow: none;
+  font-size: 10px;
+}
+
+.settings-view {
+  position: absolute;
+  top: 92px;
+  right: 32px;
+  bottom: 24px;
+  left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stats-section {
+  position: static;
+  width: auto;
+  height: auto;
+}
+
+.stats-section h2,
+.config-title {
+  font-size: 17px;
+}
+
+.stats-grid {
+  position: static;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin-top: 12px;
+}
+
+.stat-card {
+  width: auto;
+  min-height: 74px;
+  padding: 13px 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+}
+
+.stat-card--today,
+.stat-card--completion {
+  background: var(--color-accent-soft);
+}
+
+.stat-card--week {
+  background: var(--color-break-soft);
+}
+
+.stat-card--sessions {
+  background: var(--color-sessions-soft);
+}
+
+.stat-card span {
+  display: block;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text);
+  font-family: var(--font-timer);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.config-title {
+  position: static;
+  margin-top: 2px;
+}
+
+.config-card {
+  position: static;
+  display: grid;
+  width: auto;
+  height: auto;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.config-row {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 32px;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.config-row--focus {
+  top: 20px;
+}
+
+.config-row--break {
+  top: 71px;
+}
+
+.config-row--sound {
+  top: 101px;
+}
+
+.config-row--theme {
+  top: 132px;
+}
+
+.config-value-chip {
+  display: inline-flex;
+  flex: 0 0 106px;
+  align-items: center;
+  justify-content: center;
+  width: 106px;
+  height: 31px;
+  border: 1px solid var(--color-accent-soft-border);
+  border-radius: 10px;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  font-family: var(--font-timer);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.config-row--break .config-value-chip,
+.config-value-chip--sound,
+.config-value-chip--theme {
+  border-color: var(--color-break-border);
+  color: var(--color-break-text);
+  background: var(--color-break-soft);
+}
+
+.config-value-chip input,
+.config-value-chip select {
+  width: 46px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: right;
+}
+
+.config-value-chip select {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.config-value-chip--sound,
+.config-value-chip--theme {
+  flex-basis: 190px;
+  width: 190px;
+  justify-content: flex-start;
+  padding: 0 10px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.config-value-chip--theme {
+  flex-basis: 128px;
+  width: 128px;
+}
+
+.mode-shell > span {
+  position: static;
+  flex: 0 0 42px;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mode-shell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.mode-picker {
+  position: static;
+  display: grid;
+  flex: 1;
+  width: auto;
+  height: 48px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.mode-picker button {
+  width: auto;
+  height: 36px;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 8px;
+  color: var(--color-muted);
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mode-picker button.is-selected {
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.mode-picker button:not(.is-selected) {
+  color: var(--color-text);
+  background: var(--color-mode-option-bg);
+}
+
+.error {
+  position: absolute;
+  right: 20px;
+  bottom: 12px;
+  left: 20px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: 10px;
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  font-size: 12px;
+}

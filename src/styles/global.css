@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600;700&family=SUSE+Mono:wght@500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--color-text);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 16px;
+}
+
+button {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+  font: inherit;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.shell {
+  display: grid;
+  place-items: center;
+}
+
+.timer-display {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.timer-display__time {
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-family: var(--font-timer);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.timer-display__status {
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timer-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  padding: 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-control);
+}
+
+.icon-button__glyph,
+.icon-button svg {
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.icon-button svg {
+  fill: currentColor;
+}
+
+.timer-controls__primary {
+  width: 4rem;
+  height: 4rem;
+  color: var(--color-on-accent);
+  border-color: var(--color-accent-strong);
+  background: var(--color-accent);
+  box-shadow: var(--shadow-primary);
+}
+
+.timer-controls__reset {
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+}
+
+.timer-controls__settings {
+  color: var(--color-text);
+}
+
+.timer-controls__primary .icon-button__glyph,
+.timer-controls__primary svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}

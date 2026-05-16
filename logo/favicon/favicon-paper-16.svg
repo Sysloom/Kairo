@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="Kairo">
+  <title>Kairo · favicon</title>
+  <rect x="0" y="0" width="16" height="16" rx="4" ry="4" fill="#FBF9F4"></rect>
+  <g transform="translate(3 3)">
+    <path d="M 7.75 1.60 A 4.50 4.50 0 1 1 1.60 3.25" fill="none" stroke="#17171C" stroke-width="2" stroke-linecap="round"></path>
+  </g>
+</svg>

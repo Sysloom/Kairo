@@ -1,0 +1,410 @@
+.timer-window {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+  cursor: grab;
+  user-select: none;
+}
+
+.timer-window__surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 282px;
+  height: 232px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transform: scale(var(--timer-window-scale, 1));
+  transform-origin: top left;
+}
+
+.timer-window:active {
+  cursor: grabbing;
+}
+
+.timer-window button,
+.timer-window input,
+.timer-window label,
+.timer-window [data-no-window-drag="true"] {
+  cursor: auto;
+}
+
+.timer-window button {
+  cursor: pointer;
+}
+
+.timer-window__header {
+  position: relative;
+  z-index: 3;
+}
+
+.timer-window--analog .timer-window__surface {
+  width: 340px;
+  height: 406px;
+}
+
+.timer-window__header span {
+  position: absolute;
+  top: 17px;
+  left: 20px;
+  width: 150px;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-window__variant-button {
+  position: absolute;
+  top: 15px;
+  left: 220px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--color-muted);
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--font-timer);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.timer-window__hide-button {
+  position: absolute;
+  top: 15px;
+  left: 250px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--color-muted);
+  background: transparent;
+  box-shadow: none;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.timer-window__variant-button:hover,
+.timer-window__variant-button:focus-visible,
+.timer-window__hide-button:hover,
+.timer-window__hide-button:focus-visible {
+  color: var(--color-accent);
+}
+
+.timer-window--analog .timer-window__header span {
+  top: 24px;
+  left: 20px;
+  width: 226px;
+  color: var(--color-text);
+}
+
+.timer-window--analog .timer-window__variant-button {
+  top: 15px;
+  left: 274px;
+}
+
+.timer-window--analog .timer-window__hide-button {
+  top: 15px;
+  left: 306px;
+}
+
+.timer-window__time-group {
+  position: absolute;
+  top: 60px;
+  left: 37px;
+  display: grid;
+  width: 206px;
+  height: 94px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+}
+
+.timer-window__time {
+  color: var(--color-text);
+  font-family: var(--font-timer);
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.08em;
+  text-align: center;
+}
+
+.timer-window__next {
+  max-width: 216px;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-window__controls {
+  position: absolute;
+  z-index: 3;
+  top: 162px;
+  left: 60px;
+  width: 166px;
+  height: 54px;
+}
+
+.timer-window--analog .timer-window__controls {
+  top: 328px;
+  left: 87px;
+}
+
+.timer-window .timer-controls {
+  position: relative;
+  width: 166px;
+  height: 54px;
+  margin: 0;
+  gap: 0;
+}
+
+.timer-window .timer-controls .icon-button {
+  position: absolute;
+}
+
+.timer-window .timer-controls__reset,
+.timer-window .timer-controls__settings {
+  top: 8px;
+  width: 38px;
+  height: 38px;
+}
+
+.timer-window .timer-controls__reset {
+  left: 0;
+}
+
+.timer-window .timer-controls__primary {
+  top: 0;
+  left: 55px;
+  width: 56px;
+  height: 56px;
+}
+
+.timer-window .timer-controls__settings {
+  left: 128px;
+}
+
+.timer-window .timer-controls__primary .icon-button__glyph,
+.timer-window .timer-controls__primary svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.timer-window__config {
+  position: absolute;
+  z-index: 4;
+  right: -44px;
+  bottom: 62px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 254px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-popover);
+}
+
+.timer-window--analog .timer-window__config {
+  right: -44px;
+  bottom: 62px;
+}
+
+.timer-window__analog {
+  position: absolute;
+  inset: 0;
+}
+
+.timer-window__ring-outline {
+  position: absolute;
+  top: 59px;
+  left: 58px;
+  width: 224px;
+  height: 224px;
+  border: 1px solid var(--color-card-border);
+  border-radius: 50%;
+}
+
+.timer-window__tick-ring {
+  position: absolute;
+  top: 59px;
+  left: 58px;
+  width: 224px;
+  height: 224px;
+  border-radius: 50%;
+}
+
+.timer-window__tick-ring span {
+  position: absolute;
+  top: 8px;
+  left: 109px;
+  width: 6px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--color-ring-rest);
+  opacity: 0.9;
+  transform: rotate(calc(var(--tick-index) * 11.25deg)) translateY(-2px);
+  transform-origin: 3px 104px;
+}
+
+.timer-window__tick-ring span.is-active {
+  background: var(--color-accent);
+  opacity: 1;
+}
+
+.timer-window__analog-center {
+  position: absolute;
+  top: 79px;
+  left: 66px;
+  display: grid;
+  width: 208px;
+  height: 184px;
+  place-items: center;
+  align-content: center;
+}
+
+.timer-window__analog-number {
+  color: var(--color-text);
+  font-family: var(--font-timer);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.08em;
+}
+
+.timer-window__analog-unit {
+  margin-top: 8px;
+  color: var(--color-muted);
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.timer-window__analog-next {
+  position: absolute;
+  top: 296px;
+  left: 62px;
+  width: 216px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-window__config label {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.timer-window__config input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.35rem 0.45rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.timer-window__mode {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.timer-window__mode button {
+  padding: 0.35rem 0.55rem;
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.74rem;
+}
+
+.timer-window__mode button.is-selected {
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.timer-window__resize-handle {
+  position: absolute;
+  right: 3px;
+  bottom: 6px;
+  z-index: 8;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.timer-window__resize-handle:hover,
+.timer-window__resize-handle:focus-visible {
+  background: color-mix(in srgb, var(--color-accent-soft) 60%, transparent);
+}
+
+.timer-window--analog .timer-window__resize-handle {
+  right: 10px;
+  bottom: 10px;
+}
+
+.timer-window__resize-handle span {
+  position: absolute;
+  right: 9px;
+  bottom: 10px;
+  pointer-events: none;
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 48%, var(--color-border));
+  transform: rotate(-45deg);
+  transform-origin: right center;
+}
+
+.timer-window__resize-handle span:first-child {
+  width: 8px;
+  bottom: 9px;
+}
+
+.timer-window__resize-handle span:last-child {
+  width: 16px;
+  bottom: 15px;
+}

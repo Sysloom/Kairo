@@ -1,0 +1,32 @@
+.mini-timer {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  place-items: center;
+  border: 0.5px solid color-mix(in srgb, var(--color-accent-soft-border) 20%, transparent);
+  border-radius: 4px;
+  color: var(--color-on-accent);
+  background: var(--color-mini-bg);
+  box-shadow: var(--shadow-mini);
+  cursor: grab;
+  user-select: none;
+}
+
+.mini-timer:active {
+  cursor: grabbing;
+}
+
+.mini-timer span {
+  font-family: var(--font-timer);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.08em;
+}
+
+.mini-timer--paused,
+.mini-timer--awaiting_continue {
+  color: var(--color-text);
+  background: var(--color-break-soft);
+  border-color: var(--color-break-border);
+}

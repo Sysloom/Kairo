@@ -37,6 +37,7 @@ pub struct TimerSnapshotCycle {
     pub focus_ms: i64,
     pub break_ms: i64,
     pub total_focus_target_ms: i64,
+    pub total_cycle_target_ms: i64,
     pub completed_focus_ms: i64,
     pub completed_steps: u32,
 }

@@ -13,11 +13,13 @@ export function startFocusBreakCycle(
   focusMs: number,
   breakMs: number,
   totalFocusTargetMs: number,
+  totalCycleTargetMs: number,
 ): Promise<TimerSnapshot> {
   return invoke<TimerSnapshot>('start_focus_break_cycle', {
     focusMs,
     breakMs,
     totalFocusTargetMs,
+    totalCycleTargetMs,
   });
 }
 

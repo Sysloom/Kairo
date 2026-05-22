@@ -338,9 +338,12 @@ fn run_primary_tray_action(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     let snapshot = state.snapshot()?;
     let next_snapshot = match snapshot.status {
-        TimerStatus::Idle | TimerStatus::Completed => {
-            state.start_focus_break_cycle(25 * 60 * 1000, 5 * 60 * 1000, 50 * 60 * 1000)
-        }
+        TimerStatus::Idle | TimerStatus::Completed => state.start_focus_break_cycle(
+            25 * 60 * 1000,
+            5 * 60 * 1000,
+            50 * 60 * 1000,
+            55 * 60 * 1000,
+        ),
         TimerStatus::Running => state.pause(),
         TimerStatus::Paused => state.resume(),
         TimerStatus::AwaitingContinue => state.continue_cycle(),

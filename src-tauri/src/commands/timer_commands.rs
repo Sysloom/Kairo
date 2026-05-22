@@ -38,8 +38,14 @@ pub fn start_focus_break_cycle(
     focus_ms: i64,
     break_ms: i64,
     total_focus_target_ms: i64,
+    total_cycle_target_ms: i64,
 ) -> Result<TimerSnapshot, String> {
-    let snapshot = state.start_focus_break_cycle(focus_ms, break_ms, total_focus_target_ms)?;
+    let snapshot = state.start_focus_break_cycle(
+        focus_ms,
+        break_ms,
+        total_focus_target_ms,
+        total_cycle_target_ms,
+    )?;
     crate::infrastructure::windows::show_timer_window(&app)?;
     emit_snapshot(&app, &snapshot)?;
     Ok(snapshot)

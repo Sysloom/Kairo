@@ -6,6 +6,7 @@ import { getFloatingTimerVariantPreference, setFloatingTimerVariantPreference, t
 import { durationMinutesToMs, useFocusPreferences } from '../../features/focus/focusDurationPreference';
 import { continueTimerCycle, hideTimerWindow, pauseTimer, resetTimer, resumeTimer, showMainWindow, startFocusBreakCycle, startFreeSession } from '../../features/focus/timerApi';
 import { formatDuration } from '../../features/focus/formatDuration';
+import { calculateTimerPlan, totalMinutesToMs } from '../../features/focus/timerPlan';
 import type { TimerSnapshot } from '../../features/focus/focus.types';
 import { useTimerSnapshot } from '../../features/focus/useTimerSnapshot';
 import { stopTimerAlarm } from '../../services/audioService';
@@ -33,7 +34,7 @@ const WINDOW_DRAG_BLOCK_SELECTOR = 'button, input, select, textarea, a, label, [
 
 export function TimerWindow() {
   const snapshot = useTimerSnapshot();
-  const { focusMinutes, restMinutes } = useFocusPreferences();
+  const { focusMinutes, restMinutes, cycleTotalMinutes } = useFocusPreferences();
   const [sessionMode] = useState<SessionMode>('cyclic');
   const [viewVariant, setViewVariant] = useState<FloatingTimerVariant>(() => getFloatingTimerVariantPreference());
   const [logicalWindowSize, setLogicalWindowSize] = useState<TimerWindowSize>(TIMER_WINDOW_BOUNDS.compact.base);
@@ -117,11 +118,16 @@ export function TimerWindow() {
   const startCycle = () => {
     stopTimerAlarm();
     void (sessionMode === 'cyclic'
-      ? startFocusBreakCycle(
-        durationMinutesToMs(focusMinutes),
-        durationMinutesToMs(restMinutes),
-        durationMinutesToMs(focusMinutes) * 2,
-      )
+      ? (() => {
+        const timerPlan = calculateTimerPlan(cycleTotalMinutes, focusMinutes, restMinutes);
+
+        return startFocusBreakCycle(
+          durationMinutesToMs(focusMinutes),
+          durationMinutesToMs(restMinutes),
+          totalMinutesToMs(timerPlan.totalFocusMinutes),
+          totalMinutesToMs(cycleTotalMinutes),
+        );
+      })()
       : startFreeSession(durationMinutesToMs(focusMinutes)));
   };
 
@@ -273,7 +279,7 @@ function getWindowScale(windowSize: { width: number; height: number }, baseSize:
 function getStepTitle(snapshot: TimerSnapshot, fallbackFocusMinutes: number): string {
   if (snapshot.currentStep) {
     const label = snapshot.currentStep.kind === 'short_break' ? 'Descanso' : 'Enfoque';
-    const total = snapshot.cycle ? Math.max(1, Math.round(snapshot.cycle.totalFocusTargetMs / Math.max(snapshot.cycle.focusMs, 1))) : 1;
+    const total = snapshot.cycle ? Math.max(1, Math.ceil(snapshot.cycle.totalFocusTargetMs / Math.max(snapshot.cycle.focusMs, 1))) : 1;
     const position = snapshot.currentStep.kind === 'short_break'
       ? Math.max(1, Math.ceil(snapshot.currentStep.index / 2))
       : Math.floor(snapshot.currentStep.index / 2) + 1;
@@ -295,11 +301,11 @@ function getNextLabel(snapshot: TimerSnapshot, restMinutes: number, focusMinutes
   }
 
   if (snapshot.currentStep?.kind === 'focus') {
-    return `Sigue: descanso ${restMinutes} min`;
+    return snapshot.nextStep ? `Sigue: descanso ${formatMinutes(snapshot.nextStep.plannedMs)}` : `Sigue: descanso ${restMinutes} min`;
   }
 
   if (snapshot.currentStep?.kind === 'short_break') {
-    return `Sigue: enfoque ${focusMinutes} min`;
+    return snapshot.nextStep ? `Sigue: enfoque ${formatMinutes(snapshot.nextStep.plannedMs)}` : `Sigue: enfoque ${focusMinutes} min`;
   }
 
   if (snapshot.status === 'completed') {

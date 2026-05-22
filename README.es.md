@@ -10,7 +10,7 @@ Versión en inglés: [README.md](./README.md)
 
 **Build para Fedora KDE 44:**
 
-- RPM: [Kairo-0.1.1-1.x86_64.rpm](https://github.com/Sysloom/Kairo/releases/download/v0.1.1/Kairo-0.1.1-1.x86_64.rpm)
+- RPM: [Kairo-0.1.2-1.x86_64.rpm](https://github.com/Sysloom/Kairo/releases/download/v0.1.2/Kairo-0.1.2-1.x86_64.rpm)
 
 ## Camino rápido
 
@@ -30,13 +30,13 @@ Versión en inglés: [README.md](./README.md)
 ### Opción recomendada: Fedora KDE 44
 
 ```bash
-sudo dnf install -y "https://github.com/Sysloom/Kairo/releases/download/v0.1.1/Kairo-0.1.1-1.x86_64.rpm"
+sudo dnf install -y "https://github.com/Sysloom/Kairo/releases/download/v0.1.2/Kairo-0.1.2-1.x86_64.rpm"
 ```
 
 Si ya lo tenías instalado:
 
 ```bash
-sudo dnf reinstall -y "https://github.com/Sysloom/Kairo/releases/download/v0.1.1/Kairo-0.1.1-1.x86_64.rpm"
+sudo dnf reinstall -y "https://github.com/Sysloom/Kairo/releases/download/v0.1.2/Kairo-0.1.2-1.x86_64.rpm"
 ```
 
 ## Qué incluye hoy

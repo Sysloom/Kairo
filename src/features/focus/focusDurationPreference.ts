@@ -9,10 +9,12 @@ import softPingLoopV2Url from '../../../music-alarm/Soft Ping Loop v2.mp3';
 import softPingLoopUrl from '../../../music-alarm/Soft Ping Loop.mp3';
 import softPulseChimeV2Url from '../../../music-alarm/Soft Pulse Chime v2.mp3';
 import softPulseChimeUrl from '../../../music-alarm/Soft Pulse Chime.mp3';
+import { clampCycleTotalMinutes, getDefaultCycleTotalMinutes } from './timerPlan';
 
 const FOCUS_DURATION_STORAGE_KEY = 'focus-tray:free-focus-duration-minutes';
 const REST_DURATION_STORAGE_KEY = 'focus-tray:rest-duration-minutes';
 const TONE_STORAGE_KEY = 'focus-tray:tone';
+const CYCLE_TOTAL_DURATION_STORAGE_KEY = 'focus-tray:cycle-total-duration-minutes';
 const PREFERENCES_CHANGED_EVENT = 'focus-preferences-changed';
 
 export const DEFAULT_DURATION_MINUTES = 25;
@@ -68,10 +70,21 @@ export function useFocusPreferences() {
 
   const updatePreferences = useCallback((nextPreferences: Partial<FocusPreferences>) => {
     const currentPreferences = readFocusPreferences();
+    const focusMinutes = clampDurationMinutes(nextPreferences.focusMinutes ?? currentPreferences.focusMinutes);
+    const restMinutes = clampDurationMinutes(nextPreferences.restMinutes ?? currentPreferences.restMinutes);
+    const cycleTotalCustomized = nextPreferences.cycleTotalMinutes !== undefined
+      ? true
+      : currentPreferences.cycleTotalCustomized;
     const mergedPreferences: FocusPreferences = {
-      focusMinutes: clampDurationMinutes(nextPreferences.focusMinutes ?? currentPreferences.focusMinutes),
-      restMinutes: clampDurationMinutes(nextPreferences.restMinutes ?? currentPreferences.restMinutes),
+      focusMinutes,
+      restMinutes,
       tone: normalizeTonePreference(nextPreferences.tone ?? currentPreferences.tone),
+      cycleTotalMinutes: nextPreferences.cycleTotalMinutes !== undefined
+        ? clampCycleTotalMinutes(nextPreferences.cycleTotalMinutes)
+        : cycleTotalCustomized
+        ? currentPreferences.cycleTotalMinutes
+        : getDefaultCycleTotalMinutes(focusMinutes, restMinutes),
+      cycleTotalCustomized,
     };
 
     writeFocusPreferences(mergedPreferences);
@@ -84,6 +97,7 @@ export function useFocusPreferences() {
     setFocusMinutes: (focusMinutes: number) => updatePreferences({ focusMinutes }),
     setRestMinutes: (restMinutes: number) => updatePreferences({ restMinutes }),
     setTone: (tone: TonePreference) => updatePreferences({ tone }),
+    setCycleTotalMinutes: (cycleTotalMinutes: number) => updatePreferences({ cycleTotalMinutes }),
   };
 }
 
@@ -97,6 +111,8 @@ type FocusPreferences = {
   focusMinutes: number;
   restMinutes: number;
   tone: TonePreference;
+  cycleTotalMinutes: number;
+  cycleTotalCustomized: boolean;
 };
 
 function readDurationMinutes(): number {
@@ -110,10 +126,15 @@ function readDurationMinutes(): number {
 }
 
 function readFocusPreferences(): FocusPreferences {
+  const focusMinutes = readDurationMinutes();
+  const restMinutes = readStoredDurationMinutes(REST_DURATION_STORAGE_KEY, DEFAULT_REST_MINUTES);
+
   return {
-    focusMinutes: readDurationMinutes(),
-    restMinutes: readStoredDurationMinutes(REST_DURATION_STORAGE_KEY, DEFAULT_REST_MINUTES),
+    focusMinutes,
+    restMinutes,
     tone: normalizeTonePreference(window.localStorage.getItem(TONE_STORAGE_KEY)),
+    cycleTotalMinutes: readStoredCycleTotalMinutes(focusMinutes, restMinutes),
+    cycleTotalCustomized: window.localStorage.getItem(CYCLE_TOTAL_DURATION_STORAGE_KEY) !== null,
   };
 }
 
@@ -121,6 +142,12 @@ function writeFocusPreferences(preferences: FocusPreferences) {
   window.localStorage.setItem(FOCUS_DURATION_STORAGE_KEY, String(preferences.focusMinutes));
   window.localStorage.setItem(REST_DURATION_STORAGE_KEY, String(preferences.restMinutes));
   window.localStorage.setItem(TONE_STORAGE_KEY, preferences.tone);
+
+  if (preferences.cycleTotalCustomized) {
+    window.localStorage.setItem(CYCLE_TOTAL_DURATION_STORAGE_KEY, String(preferences.cycleTotalMinutes));
+  } else {
+    window.localStorage.removeItem(CYCLE_TOTAL_DURATION_STORAGE_KEY);
+  }
 }
 
 function readStoredDurationMinutes(storageKey: string, fallbackMinutes: number): number {
@@ -131,6 +158,16 @@ function readStoredDurationMinutes(storageKey: string, fallbackMinutes: number):
   }
 
   return clampDurationMinutes(Number(storedValue));
+}
+
+function readStoredCycleTotalMinutes(focusMinutes: number, restMinutes: number): number {
+  const storedValue = window.localStorage.getItem(CYCLE_TOTAL_DURATION_STORAGE_KEY);
+
+  if (storedValue === null) {
+    return getDefaultCycleTotalMinutes(focusMinutes, restMinutes);
+  }
+
+  return clampCycleTotalMinutes(Number(storedValue));
 }
 
 export function getToneOption(value: unknown): ToneOption {

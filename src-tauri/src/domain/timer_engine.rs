@@ -47,7 +47,7 @@ impl<C: Clock> TimerEngine<C> {
     }
 
     pub fn start_free_session(&mut self, duration_ms: i64) -> TimerSnapshot {
-        self.start_focus_break_cycle(duration_ms, 0, duration_ms)
+        self.start_focus_break_cycle(duration_ms, 0, duration_ms, duration_ms)
     }
 
     pub fn start_focus_break_cycle(
@@ -55,6 +55,7 @@ impl<C: Clock> TimerEngine<C> {
         focus_ms: i64,
         break_ms: i64,
         total_focus_target_ms: i64,
+        total_cycle_target_ms: i64,
     ) -> TimerSnapshot {
         if matches!(
             self.status(),
@@ -71,6 +72,7 @@ impl<C: Clock> TimerEngine<C> {
             focus_ms: focus_ms.max(1),
             break_ms: break_ms.max(1),
             total_focus_target_ms: total_focus_target_ms.max(1),
+            total_cycle_target_ms: total_cycle_target_ms.max(1),
         };
         let now_ms = self.clock.now_ms();
         let session_id = Uuid::new_v4().to_string();
@@ -90,7 +92,7 @@ impl<C: Clock> TimerEngine<C> {
             index: 0,
             kind: StepKind::Focus,
             status: StepStatus::Running,
-            planned_ms: config.focus_ms,
+            planned_ms: config.focus_ms.min(config.total_focus_target_ms),
             actual_ms: 0,
         });
         self.active_step_index = Some(0);
@@ -111,17 +113,13 @@ impl<C: Clock> TimerEngine<C> {
         let Some(config) = self.cycle_config.clone() else {
             return self.snapshot();
         };
+        let now_ms = self.clock.now_ms();
+        let planned_ms = self.planned_ms_for_kind(&config, &next_kind, now_ms);
         let Some(session) = self.session.as_mut() else {
             return self.snapshot();
         };
-
-        let now_ms = self.clock.now_ms();
         let step_id = Uuid::new_v4().to_string();
         let session_id = session.id.clone();
-        let planned_ms = match next_kind {
-            StepKind::Focus => config.focus_ms,
-            StepKind::ShortBreak => config.break_ms,
-        };
 
         session.status = TimerStatus::Running;
         self.steps.push(SessionStep {
@@ -239,15 +237,15 @@ impl<C: Clock> TimerEngine<C> {
             step.status = StepStatus::Completed;
         }
 
-        let focus_target_reached = self.total_focus_elapsed_at(now_ms)
+        let cycle_target_reached = self.total_elapsed_at(now_ms)
             >= self
                 .cycle_config
                 .as_ref()
-                .map(|config| config.total_focus_target_ms)
+                .map(|config| config.total_cycle_target_ms)
                 .unwrap_or(planned_ms);
 
         if let Some(session) = &mut self.session {
-            if focus_target_reached {
+            if cycle_target_reached {
                 session.status = TimerStatus::Completed;
                 session.ended_at_ms = Some(now_ms);
             } else {
@@ -354,12 +352,29 @@ impl<C: Clock> TimerEngine<C> {
             .sum()
     }
 
+    fn total_elapsed_at(&self, now_ms: i64) -> i64 {
+        self.steps
+            .iter()
+            .map(|step| {
+                let open_elapsed = self
+                    .current_interval_id
+                    .as_ref()
+                    .and_then(|id| self.intervals.iter().find(|interval| &interval.id == id))
+                    .filter(|interval| interval.step_id == step.id)
+                    .map(|interval| (now_ms - interval.started_at_ms).max(0))
+                    .unwrap_or(0);
+
+                (step.actual_ms + open_elapsed).min(step.planned_ms)
+            })
+            .sum()
+    }
+
     fn next_step_kind(&self) -> Option<StepKind> {
-        if self.total_focus_elapsed_at(self.clock.now_ms())
+        if self.total_elapsed_at(self.clock.now_ms())
             >= self
                 .cycle_config
                 .as_ref()
-                .map(|config| config.total_focus_target_ms)
+                .map(|config| config.total_cycle_target_ms)
                 .unwrap_or_default()
         {
             return None;
@@ -369,6 +384,24 @@ impl<C: Clock> TimerEngine<C> {
             Some(StepKind::Focus) => Some(StepKind::ShortBreak),
             Some(StepKind::ShortBreak) => Some(StepKind::Focus),
             None => None,
+        }
+    }
+
+    fn planned_ms_for_kind(&self, config: &CycleConfig, kind: &StepKind, now_ms: i64) -> i64 {
+        let remaining_cycle_ms =
+            (config.total_cycle_target_ms - self.total_elapsed_at(now_ms)).max(1);
+
+        match kind {
+            StepKind::Focus => {
+                let remaining_focus_ms =
+                    (config.total_focus_target_ms - self.total_focus_elapsed_at(now_ms)).max(1);
+
+                config
+                    .focus_ms
+                    .min(remaining_focus_ms)
+                    .min(remaining_cycle_ms)
+            }
+            StepKind::ShortBreak => config.break_ms.min(remaining_cycle_ms),
         }
     }
 
@@ -403,10 +436,7 @@ impl<C: Clock> TimerEngine<C> {
                     id: String::new(),
                     kind: kind.clone(),
                     index: self.steps.len() as u32,
-                    planned_ms: match kind {
-                        StepKind::Focus => config.focus_ms,
-                        StepKind::ShortBreak => config.break_ms,
-                    },
+                    planned_ms: self.planned_ms_for_kind(config, &kind, now_ms),
                     actual_ms: 0,
                 })
             }),
@@ -415,6 +445,7 @@ impl<C: Clock> TimerEngine<C> {
                 focus_ms: config.focus_ms,
                 break_ms: config.break_ms,
                 total_focus_target_ms: config.total_focus_target_ms,
+                total_cycle_target_ms: config.total_cycle_target_ms,
                 completed_focus_ms: total_focus_elapsed_ms,
                 completed_steps: self
                     .steps
@@ -536,7 +567,7 @@ mod tests {
     #[test]
     fn focus_step_completion_waits_for_manual_break_transition() {
         let (mut engine, clock) = engine_at(1_000);
-        engine.start_focus_break_cycle(2_000, 1_000, 4_000);
+        engine.start_focus_break_cycle(2_000, 1_000, 4_000, 5_000);
 
         clock.set(3_000);
         assert!(engine.complete_if_due());
@@ -552,7 +583,7 @@ mod tests {
     #[test]
     fn continue_cycle_opens_break_interval_after_manual_cta() {
         let (mut engine, clock) = engine_at(1_000);
-        engine.start_focus_break_cycle(2_000, 1_000, 4_000);
+        engine.start_focus_break_cycle(2_000, 1_000, 4_000, 5_000);
         clock.set(3_000);
         engine.complete_if_due();
 
@@ -568,7 +599,7 @@ mod tests {
     #[test]
     fn break_running_time_does_not_count_toward_focus_total() {
         let (mut engine, clock) = engine_at(1_000);
-        engine.start_focus_break_cycle(2_000, 1_000, 4_000);
+        engine.start_focus_break_cycle(2_000, 1_000, 4_000, 5_000);
         clock.set(3_000);
         engine.complete_if_due();
         clock.set(5_000);
@@ -585,7 +616,7 @@ mod tests {
     #[test]
     fn break_completion_waits_for_manual_focus_transition() {
         let (mut engine, clock) = engine_at(1_000);
-        engine.start_focus_break_cycle(2_000, 1_000, 4_000);
+        engine.start_focus_break_cycle(2_000, 1_000, 4_000, 5_000);
         clock.set(3_000);
         engine.complete_if_due();
         clock.set(5_000);
@@ -604,7 +635,7 @@ mod tests {
     #[test]
     fn total_focus_completion_marks_session_completed_without_break_cta() {
         let (mut engine, clock) = engine_at(1_000);
-        engine.start_focus_break_cycle(2_000, 1_000, 2_000);
+        engine.start_focus_break_cycle(2_000, 1_000, 2_000, 2_000);
 
         clock.set(3_000);
         assert!(engine.complete_if_due());
@@ -617,9 +648,77 @@ mod tests {
     }
 
     #[test]
+    fn exact_cycle_total_completes_after_the_final_break() {
+        let (mut engine, clock) = engine_at(1_000);
+        engine.start_focus_break_cycle(30_000, 10_000, 30_000, 40_000);
+
+        clock.set(31_000);
+        engine.complete_if_due();
+        assert_eq!(engine.snapshot().status, TimerStatus::AwaitingContinue);
+
+        clock.set(41_000);
+        engine.continue_cycle();
+        clock.set(51_000);
+        engine.complete_if_due();
+
+        let snapshot = engine.snapshot();
+
+        assert_eq!(snapshot.status, TimerStatus::Completed);
+        assert!(snapshot.next_step.is_none());
+    }
+
+    #[test]
+    fn first_focus_step_uses_partial_target_when_total_is_shorter_than_focus_block() {
+        let (mut engine, _clock) = engine_at(1_000);
+
+        let snapshot = engine.start_focus_break_cycle(30_000, 10_000, 20_000, 20_000);
+
+        assert_eq!(snapshot.current_step.unwrap().planned_ms, 20_000);
+        assert_eq!(snapshot.remaining_ms, 20_000);
+    }
+
+    #[test]
+    fn next_focus_step_uses_remaining_focus_target_for_partial_final_block() {
+        let (mut engine, clock) = engine_at(1_000);
+        engine.start_focus_break_cycle(30_000, 10_000, 110_000, 140_000);
+
+        clock.set(31_000);
+        engine.complete_if_due();
+        clock.set(41_000);
+        engine.continue_cycle();
+        clock.set(51_000);
+        engine.complete_if_due();
+        clock.set(61_000);
+        engine.continue_cycle();
+        clock.set(91_000);
+        engine.complete_if_due();
+        clock.set(101_000);
+        engine.continue_cycle();
+        clock.set(111_000);
+        engine.complete_if_due();
+        clock.set(121_000);
+        engine.continue_cycle();
+        clock.set(151_000);
+        engine.complete_if_due();
+        clock.set(161_000);
+        engine.continue_cycle();
+        clock.set(171_000);
+        engine.complete_if_due();
+        clock.set(181_000);
+        let snapshot = engine.continue_cycle();
+
+        assert_eq!(
+            snapshot.current_step.as_ref().unwrap().kind,
+            StepKind::Focus
+        );
+        assert_eq!(snapshot.current_step.unwrap().planned_ms, 20_000);
+        assert_eq!(snapshot.next_step.unwrap().kind, StepKind::ShortBreak);
+    }
+
+    #[test]
     fn paused_time_does_not_count_toward_focus_time() {
         let (mut engine, clock) = engine_at(1_000);
-        engine.start_focus_break_cycle(10_000, 5_000, 10_000);
+        engine.start_focus_break_cycle(10_000, 5_000, 10_000, 10_000);
 
         clock.set(2_000);
         engine.pause();
@@ -637,7 +736,7 @@ mod tests {
     #[test]
     fn reset_during_transition_clears_active_state() {
         let (mut engine, clock) = engine_at(1_000);
-        engine.start_focus_break_cycle(2_000, 1_000, 4_000);
+        engine.start_focus_break_cycle(2_000, 1_000, 4_000, 5_000);
         clock.set(3_000);
         engine.complete_if_due();
 

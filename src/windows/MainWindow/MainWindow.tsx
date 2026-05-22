@@ -3,6 +3,7 @@ import { TimerControls } from '../../components/TimerControls';
 import { listen } from '@tauri-apps/api/event';
 import { durationMinutesToMs, MAX_DURATION_MINUTES, MIN_DURATION_MINUTES, TONE_OPTIONS, useFocusPreferences } from '../../features/focus/focusDurationPreference';
 import { formatDuration } from '../../features/focus/formatDuration';
+import { calculateTimerPlan, formatTotalMinutesInput, parseTotalMinutesInput, totalMinutesToMs } from '../../features/focus/timerPlan';
 import { THEME_OPTIONS, useThemePreference, type ThemePreference } from '../../features/focus/themePreference';
 import { continueTimerCycle, getTodayFocusMs, hideMainWindow, pauseTimer, resetTimer, resumeTimer, showTimerWindow, startFocusBreakCycle, startFreeSession } from '../../features/focus/timerApi';
 import { useTimerSnapshot } from '../../features/focus/useTimerSnapshot';
@@ -17,13 +18,22 @@ type SessionMode = 'free' | 'cyclic';
 
 export function MainWindow() {
   const snapshot = useTimerSnapshot();
-  const { focusMinutes, restMinutes, tone, setFocusMinutes, setRestMinutes, setTone } = useFocusPreferences();
+  const {
+    focusMinutes,
+    restMinutes,
+    tone,
+    cycleTotalMinutes,
+    setFocusMinutes,
+    setRestMinutes,
+    setTone,
+    setCycleTotalMinutes,
+  } = useFocusPreferences();
   const { theme, setTheme } = useThemePreference();
   const [todayFocusMs, setTodayFocusMs] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<MainView>('timer');
   const [sessionMode, setSessionMode] = useState<SessionMode>('cyclic');
-  const [draftTotalDuration, setDraftTotalDuration] = useState(() => formatDuration(getConfiguredTotalMs('cyclic', focusMinutes, restMinutes)));
+  const [draftTotalDuration, setDraftTotalDuration] = useState(() => formatTotalMinutesInput(cycleTotalMinutes));
   const isCyclicFlow = isCyclicSession(snapshot, sessionMode);
   const completionCallout = getCompletionCallout(snapshot, isCyclicFlow);
 
@@ -36,10 +46,10 @@ export function MainWindow() {
     [focusMinutes, isCyclicFlow, restMinutes, sessionMode, snapshot.status],
   );
   const isBeforeStart = snapshot.status === 'idle' || snapshot.status === 'completed';
-  const configuredTotalMs = getConfiguredTotalMs(sessionMode, focusMinutes, restMinutes);
+  const configuredTotalMs = getConfiguredTotalMs(sessionMode, focusMinutes, cycleTotalMinutes);
   const totalRemainingMs = getTotalRemainingMs(snapshot, configuredTotalMs);
   const progressPercent = getProgressPercent(snapshot.activeKindElapsedMs, snapshot.currentStep?.plannedMs ?? 0, snapshot.status);
-  const planPreview = getPlanPreview(snapshot, sessionMode, focusMinutes, restMinutes);
+  const planPreview = getPlanPreview(snapshot, sessionMode, focusMinutes, restMinutes, cycleTotalMinutes);
   const boardTitle = view === 'timer' ? 'Kairo' : 'Configuración';
   const boardSubtitle = view === 'timer' ? getContextStatus(snapshot) : 'Estadísticas primero, reglas después';
 
@@ -55,9 +65,9 @@ export function MainWindow() {
 
   useEffect(() => {
     if (isBeforeStart) {
-      setDraftTotalDuration(formatDuration(configuredTotalMs));
+      setDraftTotalDuration(formatTotalMinutesInput(sessionMode === 'cyclic' ? cycleTotalMinutes : focusMinutes));
     }
-  }, [configuredTotalMs, isBeforeStart]);
+  }, [cycleTotalMinutes, focusMinutes, isBeforeStart, sessionMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,10 +99,13 @@ export function MainWindow() {
     stopTimerAlarm();
     runAction(async () => {
       if (sessionMode === 'cyclic') {
+        const timerPlan = calculateTimerPlan(cycleTotalMinutes, focusMinutes, restMinutes);
+
         await startFocusBreakCycle(
           durationMinutesToMs(focusMinutes),
           durationMinutesToMs(restMinutes),
-          durationMinutesToMs(focusMinutes) * 2,
+          totalMinutesToMs(timerPlan.totalFocusMinutes),
+          totalMinutesToMs(cycleTotalMinutes),
         );
       } else {
         await startFreeSession(durationMinutesToMs(focusMinutes));
@@ -127,16 +140,20 @@ export function MainWindow() {
   };
 
   const commitTotalDuration = () => {
-    const parsedTotalMs = parseDurationInput(draftTotalDuration);
+    const parsedTotalMinutes = parseTotalMinutesInput(draftTotalDuration);
 
-    if (parsedTotalMs === null) {
-      setDraftTotalDuration(formatDuration(configuredTotalMs));
+    if (parsedTotalMinutes === null) {
+      setDraftTotalDuration(formatTotalMinutesInput(sessionMode === 'cyclic' ? cycleTotalMinutes : focusMinutes));
       return;
     }
 
-    const nextFocusMinutes = getFocusMinutesFromConfiguredTotalMs(sessionMode, parsedTotalMs, restMinutes);
-    setFocusMinutes(nextFocusMinutes);
-    setDraftTotalDuration(formatDuration(getConfiguredTotalMs(sessionMode, nextFocusMinutes, restMinutes)));
+    if (sessionMode === 'free') {
+      setFocusMinutes(parsedTotalMinutes);
+    } else {
+      setCycleTotalMinutes(parsedTotalMinutes);
+    }
+
+    setDraftTotalDuration(formatTotalMinutesInput(parsedTotalMinutes));
   };
 
   const handleTotalDurationKeyDown = (event: KeyboardEvent) => {
@@ -145,7 +162,7 @@ export function MainWindow() {
     }
 
     if (event.key === 'Escape') {
-      setDraftTotalDuration(formatDuration(configuredTotalMs));
+      setDraftTotalDuration(formatTotalMinutesInput(sessionMode === 'cyclic' ? cycleTotalMinutes : focusMinutes));
       (event.currentTarget as unknown as { blur: () => void }).blur();
     }
   };
@@ -197,6 +214,9 @@ export function MainWindow() {
                   <input
                     className="timer-ring__time timer-ring__time-input"
                     aria-label="Tiempo total del timer"
+                    type="number"
+                    min={1}
+                    step={1}
                     value={draftTotalDuration}
                     inputMode="numeric"
                     onChange={(event) => setDraftTotalDuration(event.currentTarget.value)}
@@ -400,14 +420,14 @@ function getProgressPercent(elapsedMs: number, plannedMs: number, status: string
   return Math.min(100, Math.max(0, (elapsedMs / plannedMs) * 100));
 }
 
-function getConfiguredTotalMs(sessionMode: SessionMode, focusMinutes: number, restMinutes: number): number {
+function getConfiguredTotalMs(sessionMode: SessionMode, focusMinutes: number, cycleTotalMinutes: number): number {
   const focusMs = durationMinutesToMs(focusMinutes);
 
   if (sessionMode === 'free') {
     return focusMs;
   }
 
-  return focusMs * 2 + durationMinutesToMs(restMinutes);
+  return totalMinutesToMs(cycleTotalMinutes);
 }
 
 function getTotalRemainingMs(snapshot: ReturnType<typeof useTimerSnapshot>, fallbackConfiguredTotalMs: number): number {
@@ -433,10 +453,7 @@ function getSnapshotPlannedTotalMs(snapshot: ReturnType<typeof useTimerSnapshot>
     return snapshot.totalFocusTargetMs > 0 ? snapshot.totalFocusTargetMs : null;
   }
 
-  const focusBlocks = Math.max(1, Math.ceil(snapshot.cycle.totalFocusTargetMs / snapshot.cycle.focusMs));
-  const breakBlocks = Math.max(0, focusBlocks - 1);
-
-  return snapshot.cycle.totalFocusTargetMs + breakBlocks * snapshot.cycle.breakMs;
+  return snapshot.cycle.totalCycleTargetMs;
 }
 
 function getCompletedStepElapsedMs(snapshot: ReturnType<typeof useTimerSnapshot>): number {
@@ -455,52 +472,15 @@ function getCompletedStepElapsedMs(snapshot: ReturnType<typeof useTimerSnapshot>
   return elapsedMs;
 }
 
-function parseDurationInput(value: string): number | null {
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  if (!normalizedValue.includes(':')) {
-    const minutes = Number(normalizedValue.replace(',', '.'));
-
-    return Number.isFinite(minutes) ? durationMinutesToMs(minutes) : null;
-  }
-
-  const parts = normalizedValue.split(':').map((part) => Number(part));
-
-  if (parts.length < 2 || parts.length > 3 || parts.some((part) => !Number.isFinite(part) || part < 0)) {
-    return null;
-  }
-
-  const [hoursOrMinutes, minutesOrSeconds, seconds = 0] = parts;
-  const totalSeconds = parts.length === 3
-    ? hoursOrMinutes * 3600 + minutesOrSeconds * 60 + seconds
-    : hoursOrMinutes * 60 + minutesOrSeconds;
-
-  return totalSeconds * 1000;
-}
-
-function getFocusMinutesFromConfiguredTotalMs(sessionMode: SessionMode, configuredTotalMs: number, restMinutes: number): number {
-  const configuredTotalMinutes = configuredTotalMs / 60_000;
-
-  if (sessionMode === 'free') {
-    return configuredTotalMinutes;
-  }
-
-  return (configuredTotalMinutes - restMinutes) / 2;
-}
-
 function getPlanPreview(
   snapshot: ReturnType<typeof useTimerSnapshot>,
   sessionMode: SessionMode,
   focusMinutes: number,
   restMinutes: number,
+  cycleTotalMinutes: number,
 ): string {
-  const totalFocusBlocks = getTotalFocusBlocks(snapshot, sessionMode, focusMinutes);
-  const hasBreakBlocks = snapshot.cycle ? snapshot.cycle.breakMs > 0 : sessionMode === 'cyclic';
-  const totalBreakBlocks = hasBreakBlocks ? Math.max(0, totalFocusBlocks - 1) : 0;
+  const totalFocusBlocks = getTotalFocusBlocks(snapshot, sessionMode, focusMinutes, restMinutes, cycleTotalMinutes);
+  const totalBreakBlocks = getTotalBreakBlocks(snapshot, sessionMode, focusMinutes, restMinutes, cycleTotalMinutes);
   const completedFocusBlocks = getCompletedFocusBlocks(snapshot, sessionMode);
   const completedBreakBlocks = getCompletedBreakBlocks(snapshot, sessionMode);
   const remainingFocusBlocks = Math.max(0, totalFocusBlocks - completedFocusBlocks);
@@ -517,16 +497,52 @@ function getPlanPreview(
   return `Quedan ${remainingFocusBlocks} ${focusLabel} · ${remainingBreakBlocks} ${breakLabel} de ${breakDurationLabel}`;
 }
 
-function getTotalFocusBlocks(snapshot: ReturnType<typeof useTimerSnapshot>, sessionMode: SessionMode, focusMinutes: number): number {
+function getTotalFocusBlocks(
+  snapshot: ReturnType<typeof useTimerSnapshot>,
+  sessionMode: SessionMode,
+  focusMinutes: number,
+  restMinutes: number,
+  cycleTotalMinutes: number,
+): number {
   if (snapshot.cycle) {
-    return Math.max(1, Math.ceil(snapshot.cycle.totalFocusTargetMs / Math.max(1, snapshot.cycle.focusMs)));
+    return calculateTimerPlan(
+      snapshot.cycle.totalCycleTargetMs / 60_000,
+      snapshot.cycle.focusMs / 60_000,
+      snapshot.cycle.breakMs / 60_000,
+    ).focusBlocks;
+  }
+
+  if (sessionMode === 'cyclic') {
+    return calculateTimerPlan(cycleTotalMinutes, focusMinutes, restMinutes).focusBlocks;
   }
 
   if (snapshot.totalFocusTargetMs > 0) {
     return Math.max(1, Math.ceil(snapshot.totalFocusTargetMs / durationMinutesToMs(focusMinutes)));
   }
 
-  return sessionMode === 'cyclic' ? 2 : 1;
+  return 1;
+}
+
+function getTotalBreakBlocks(
+  snapshot: ReturnType<typeof useTimerSnapshot>,
+  sessionMode: SessionMode,
+  focusMinutes: number,
+  restMinutes: number,
+  cycleTotalMinutes: number,
+): number {
+  if (snapshot.cycle) {
+    return calculateTimerPlan(
+      snapshot.cycle.totalCycleTargetMs / 60_000,
+      snapshot.cycle.focusMs / 60_000,
+      snapshot.cycle.breakMs / 60_000,
+    ).breakBlocks;
+  }
+
+  if (sessionMode !== 'cyclic') {
+    return 0;
+  }
+
+  return calculateTimerPlan(cycleTotalMinutes, focusMinutes, restMinutes).breakBlocks;
 }
 
 function getCompletedFocusBlocks(snapshot: ReturnType<typeof useTimerSnapshot>, sessionMode: SessionMode): number {

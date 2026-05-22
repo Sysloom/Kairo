@@ -10,7 +10,7 @@ Spanish version: [README.es.md](./README.es.md)
 
 **Fedora KDE 44 build:**
 
-- RPM: [Kairo-0.1.1-1.x86_64.rpm](https://github.com/Sysloom/Kairo/releases/download/v0.1.1/Kairo-0.1.1-1.x86_64.rpm)
+- RPM: [Kairo-0.1.2-1.x86_64.rpm](https://github.com/Sysloom/Kairo/releases/download/v0.1.2/Kairo-0.1.2-1.x86_64.rpm)
 
 ## Quick start
 
@@ -133,7 +133,7 @@ src-tauri/target/release/bundle/rpm/
 Recommended for **Fedora KDE 44**:
 
 ```bash
-sudo dnf install -y "https://github.com/Sysloom/Kairo/releases/download/v0.1.1/Kairo-0.1.1-1.x86_64.rpm"
+sudo dnf install -y "https://github.com/Sysloom/Kairo/releases/download/v0.1.2/Kairo-0.1.2-1.x86_64.rpm"
 ```
 
 If your Fedora desktop allows local package installation through Discover or another graphical installer, you can open the generated `.rpm` file directly.

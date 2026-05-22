@@ -62,6 +62,7 @@ impl AppState {
         focus_ms: i64,
         break_ms: i64,
         total_focus_target_ms: i64,
+        total_cycle_target_ms: i64,
     ) -> Result<TimerSnapshot, String> {
         let mut engine = self
             .engine
@@ -69,7 +70,12 @@ impl AppState {
             .map_err(|_| "timer engine lock was poisoned".to_string())?;
 
         let previous = engine.active_state();
-        let snapshot = engine.start_focus_break_cycle(focus_ms, break_ms, total_focus_target_ms);
+        let snapshot = engine.start_focus_break_cycle(
+            focus_ms,
+            break_ms,
+            total_focus_target_ms,
+            total_cycle_target_ms,
+        );
 
         if let Some(previous) = previous {
             self.persist_cancelled_state(previous, snapshot.now_ms, StopReason::Reset)?;

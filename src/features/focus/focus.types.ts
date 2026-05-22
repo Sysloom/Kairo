@@ -32,6 +32,7 @@ export type TimerSnapshot = {
     focusMs: number;
     breakMs: number;
     totalFocusTargetMs: number;
+    totalCycleTargetMs: number;
     completedFocusMs: number;
     completedSteps: number;
   } | null;
